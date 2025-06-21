@@ -1,0 +1,47 @@
+
+[Unit]
+Description=CheckCle Distributed Regional Check Agent
+Documentation=https://github.com/checkcle/distributed-regional-monitoring
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=regional-check-agent
+Group=regional-check-agent
+ExecStart=/usr/bin/distributed-regional-check-agent
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=regional-check-agent
+
+# Network capabilities for ping operations
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+
+# Security settings (relaxed for network operations)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/regional-check-agent
+PrivateTmp=true
+PrivateDevices=false
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+
+# Environment
+EnvironmentFile=-/etc/regional-check-agent/regional-check-agent.env
+WorkingDirectory=/var/lib/regional-check-agent
+
+[Install]
+WantedBy=multi-user.target

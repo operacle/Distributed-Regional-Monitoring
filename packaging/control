@@ -1,0 +1,23 @@
+
+Package: distributed-regional-check-agent
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: CheckCle Team <support@checkcle.com>
+Description: Distributed Regional Check Agent for CheckCle Monitoring
+ A distributed regional monitoring agent that performs network checks (HTTP, DNS, 
+ TCP, PING) and reports results to a central PocketBase instance. This agent can
+ be deployed across different regions to provide comprehensive monitoring coverage.
+ .
+ Key features:
+ - HTTP/HTTPS monitoring with detailed response analysis
+ - DNS resolution testing with multiple record types
+ - TCP connection testing with port accessibility checks
+ - ICMP ping testing with packet loss and latency metrics
+ - Regional service assignment and filtering
+ - Real-time data reporting to PocketBase
+ - Automatic service discovery and monitoring
+ - Health check endpoints for agent monitoring
+Depends: libc6 (>= 2.17), ca-certificates
+Homepage: https://github.com/checkcle/distributed-regional-monitoring

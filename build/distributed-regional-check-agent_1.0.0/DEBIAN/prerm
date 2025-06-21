@@ -1,0 +1,15 @@
+
+#!/bin/bash
+set -e
+
+# Stop the service if it's running
+if systemctl is-active --quiet regional-check-agent; then
+    echo "Stopping regional-check-agent service..."
+    systemctl stop regional-check-agent
+fi
+
+# Disable the service
+if systemctl is-enabled --quiet regional-check-agent; then
+    echo "Disabling regional-check-agent service..."
+    systemctl disable regional-check-agent
+fi

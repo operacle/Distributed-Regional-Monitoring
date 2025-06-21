@@ -1,0 +1,76 @@
+
+#!/bin/bash
+set -e
+
+# Create regional-check-agent user and group
+if ! getent group regional-check-agent >/dev/null 2>&1; then
+    addgroup --system regional-check-agent
+fi
+
+if ! getent passwd regional-check-agent >/dev/null 2>&1; then
+    adduser --system --home /var/lib/regional-check-agent --shell /bin/false \
+            --gecos "Regional Check Agent" --ingroup regional-check-agent regional-check-agent
+fi
+
+# Create directories
+mkdir -p /var/lib/regional-check-agent
+mkdir -p /var/log/regional-check-agent
+mkdir -p /etc/regional-check-agent
+
+# Set ownership and permissions
+chown regional-check-agent:regional-check-agent /var/lib/regional-check-agent
+chown regional-check-agent:regional-check-agent /var/log/regional-check-agent
+chmod 755 /var/lib/regional-check-agent
+chmod 755 /var/log/regional-check-agent
+
+# Create environment file if it doesn't exist
+if [ ! -f /etc/regional-check-agent/regional-check-agent.env ]; then
+    cp /etc/regional-check-agent/regional-check-agent.conf /etc/regional-check-agent/regional-check-agent.env
+fi
+
+# Set permissions for config files
+chown root:regional-check-agent /etc/regional-check-agent/regional-check-agent.env
+chmod 640 /etc/regional-check-agent/regional-check-agent.env
+
+# Set executable permissions and capabilities for the binary
+if [ -f /usr/bin/distributed-regional-check-agent ]; then
+    chmod +x /usr/bin/distributed-regional-check-agent
+    
+    # Set network capabilities for ping operations
+    if command -v setcap >/dev/null 2>&1; then
+        setcap cap_net_raw+ep /usr/bin/distributed-regional-check-agent
+        echo "Network capabilities set for ping operations"
+    else
+        echo "Warning: setcap not found, ping operations may require additional privileges"
+    fi
+    
+    echo "Binary permissions set successfully"
+else
+    echo "Warning: Binary /usr/bin/distributed-regional-check-agent not found"
+    ls -la /usr/bin/distributed-* || echo "No distributed-* binaries found"
+fi
+
+# Reload systemd
+systemctl daemon-reload
+
+echo "Distributed Regional Check Agent installed successfully!"
+echo ""
+echo "✅  IMPORTANT: Regional configuration required!"
+echo ""
+echo "Before starting the service, you must configure the regional settings:"
+echo "1. Edit /etc/regional-check-agent/regional-check-agent.env"
+echo "2. Set the following REQUIRED variables:"
+echo "   - REGION_NAME=your-region-name"
+echo "   - AGENT_ID=your-unique-agent-id"
+echo "   - AGENT_IP_ADDRESS=your-agent-ip"
+echo "   - POCKETBASE_URL=your-pocketbase-url"
+echo ""
+echo "To start the service after configuration:"
+echo "   sudo systemctl enable regional-check-agent"
+echo "   sudo systemctl start regional-check-agent"
+echo ""
+echo "To check status:"
+echo "   sudo systemctl status regional-check-agent"
+echo ""
+echo "Health check will be available at: http://localhost:8091/health"
+echo "Service endpoint: http://localhost:8091/operation"
