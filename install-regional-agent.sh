@@ -17,7 +17,63 @@ BASE_PACKAGE_URL="https://github.com/operacle/Distributed-Regional-Monitoring/re
 PACKAGE_VERSION="1.0.0"
 SERVICE_NAME="regional-check-agent"
 
-# ... keep existing code (function definitions and argument parsing)
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --region-name=NAME        Set the region name (required)"
+    echo "  --agent-id=ID            Set the agent ID (required)"
+    echo "  --agent-ip=IP            Set the agent IP address (required)"
+    echo "  --token=TOKEN            Set the authentication token (required)"
+    echo "  --pocketbase-url=URL     Set the PocketBase API URL (required)"
+    echo "  --package-version=VER    Set package version (default: $PACKAGE_VERSION)"
+    echo "  --help                   Show this help message"
+    echo ""
+    echo "Example:"
+    echo "  $0 --region-name=\"us-east-1\" --agent-id=\"agent_abc123\" \\"
+    echo "     --agent-ip=\"192.168.1.100\" --token=\"your-token\" \\"
+    echo "     --pocketbase-url=\"https://your-pb.com\""
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --region-name=*)
+            REGION_NAME="${1#*=}"
+            shift
+            ;;
+        --agent-id=*)
+            AGENT_ID="${1#*=}"
+            shift
+            ;;
+        --agent-ip=*)
+            AGENT_IP_ADDRESS="${1#*=}"
+            shift
+            ;;
+        --token=*)
+            AGENT_TOKEN="${1#*=}"
+            shift
+            ;;
+        --pocketbase-url=*)
+            POCKETBASE_URL="${1#*=}"
+            shift
+            ;;
+        --package-version=*)
+            PACKAGE_VERSION="${1#*=}"
+            shift
+            ;;
+        --help)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
 
 # Validate required parameters
 if [[ -z "$REGION_NAME" || -z "$AGENT_ID" || -z "$AGENT_IP_ADDRESS" || -z "$AGENT_TOKEN" || -z "$POCKETBASE_URL" ]]; then
@@ -123,11 +179,11 @@ echo ""
 echo "📥 Downloading Regional Monitoring Agent package for $PKG_ARCH..."
 cd "$TEMP_DIR"
 
-# Test if package exists first
+# Test if package exists first - Accept both 200 and 302 (redirect) as success
 echo "🔍 Checking package availability..."
 if command -v curl >/dev/null 2>&1; then
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -I "$PACKAGE_URL")
-    if [ "$HTTP_STATUS" != "200" ]; then
+    if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "302" ]; then
         echo "❌ Package not found at $PACKAGE_URL (HTTP $HTTP_STATUS)"
         echo "   Available packages should be:"
         echo "   - distributed-regional-check-agent_${PACKAGE_VERSION}_amd64.deb"
@@ -138,7 +194,7 @@ if command -v curl >/dev/null 2>&1; then
         rm -rf "$TEMP_DIR"
         exit 1
     fi
-    echo "✅ Package found, proceeding with download..."
+    echo "✅ Package found (HTTP $HTTP_STATUS), proceeding with download..."
 fi
 
 # Try wget first, then curl as fallback
