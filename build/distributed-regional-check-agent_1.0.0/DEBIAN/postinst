@@ -24,8 +24,49 @@ chmod 755 /var/lib/regional-check-agent
 chmod 755 /var/log/regional-check-agent
 
 # Create environment file if it doesn't exist
+# The package installs the config as distributed-regional-check-agent.conf, but we need it as regional-check-agent.env
 if [ ! -f /etc/regional-check-agent/regional-check-agent.env ]; then
-    cp /etc/regional-check-agent/regional-check-agent.conf /etc/regional-check-agent/regional-check-agent.env
+    # Check if the distributed config exists in the package location
+    if [ -f /etc/distributed-regional-check-agent/regional-check-agent.conf ]; then
+        cp /etc/distributed-regional-check-agent/regional-check-agent.conf /etc/regional-check-agent/regional-check-agent.env
+    elif [ -f /etc/regional-check-agent/regional-check-agent.conf ]; then
+        cp /etc/regional-check-agent/regional-check-agent.conf /etc/regional-check-agent/regional-check-agent.env
+    else
+        # Create a basic config file if none exists
+        cat > /etc/regional-check-agent/regional-check-agent.env << 'EOF'
+# Distributed Regional Check Agent Configuration
+# Auto-generated on installation
+
+# Server Configuration
+PORT=8091
+
+# Operation defaults
+DEFAULT_COUNT=4
+DEFAULT_TIMEOUT=3s
+MAX_COUNT=20
+MAX_TIMEOUT=30s
+
+# Logging
+ENABLE_LOGGING=true
+
+# PocketBase integration (no authentication required)
+POCKETBASE_ENABLED=true
+POCKETBASE_URL=http://localhost:8090
+
+# Regional Agent Configuration - REQUIRED for proper service assignment
+# These values must be configured for the agent to work properly
+REGION_NAME=
+AGENT_ID=
+AGENT_IP_ADDRESS=
+AGENT_TOKEN=
+
+# Monitoring configuration
+CHECK_INTERVAL=30s
+MAX_RETRIES=3
+REQUEST_TIMEOUT=10s
+EOF
+        echo "Created default configuration file"
+    fi
 fi
 
 # Set permissions for config files
