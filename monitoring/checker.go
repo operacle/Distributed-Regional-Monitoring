@@ -25,6 +25,13 @@ func (ms *MonitoringService) performCheck(service pocketbase.Service) {
 		return // Silently skip paused services
 	}
 
+	// Validate that this service is still assigned to our region and agent (supports comma-separated values)
+	if !pocketbase.IsAssignedToRegionAndAgent(*latestService, ms.regionName, ms.agentID) {
+		log.Printf("⚠️  Skipping check for %s: no longer assigned to region=%s, agent=%s", 
+			latestService.Name, ms.regionName, ms.agentID)
+		return
+	}
+
 	timeout := 10 * time.Second // Default timeout
 	var result *types.OperationResult
 	
@@ -89,7 +96,7 @@ func (ms *MonitoringService) performCheck(service pocketbase.Service) {
 		responseTime = result.ResponseTime.Milliseconds()
 		if result.Success {
 			status = "up"
-			//log.Printf("✅ %s: %.0fms", latestService.Name, float64(responseTime))
+			log.Printf("✅ %s: %.0fms", latestService.Name, float64(responseTime))
 		} else {
 			status = "down"
 			errorMessage = result.Error
@@ -109,7 +116,13 @@ func (ms *MonitoringService) performCheck(service pocketbase.Service) {
 		return // Silently skip status update for paused services
 	}
 
-	// Update service status in PocketBase only if not paused
+	// Final assignment validation before updating status
+	if !pocketbase.IsAssignedToRegionAndAgent(*currentService, ms.regionName, ms.agentID) {
+		log.Printf("⚠️  Skipping status update for %s: assignment changed during check", latestService.Name)
+		return
+	}
+
+	// Update service status in PocketBase only if not paused and still assigned
 	if err := ms.pbClient.UpdateServiceStatus(latestService.ID, status, responseTime, errorMessage); err != nil {
 		log.Printf("Failed to update service status for %s: %v", latestService.Name, err)
 	}

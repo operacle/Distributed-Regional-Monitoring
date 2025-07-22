@@ -56,11 +56,13 @@ func main() {
 							// Initialize and start monitoring service with regional support
 							monitoringService = monitoring.NewMonitoringServiceWithRegional(pbClient, regionalService)
 							go monitoringService.Start()
-							log.Printf("✅ Regional monitoring started successfully")
-							log.Printf("   Region: %s", regionalService.RegionName)
-							log.Printf("   Agent ID: %s", regionalService.AgentID)
-							log.Printf("   Agent IP: %s", regionalService.AgentIPAddress)
-							log.Printf("   This agent will ONLY monitor services assigned to this region and agent ID")
+							//log.Printf("✅ Regional monitoring started successfully with multi-assignment support")
+							//log.Printf("   Region: %s", regionalService.RegionName)
+							//log.Printf("   Agent ID: %s", regionalService.AgentID)
+							//log.Printf("   Agent IP: %s", regionalService.AgentIPAddress)
+							//log.Printf("   Multi-Assignment Support: Services can be assigned using comma-separated values")
+							//log.Printf("   Example: region_name='us-east,eu-west' agent_id='agent1,agent2'")
+							//log.Printf("   This agent will monitor services where its region AND agent ID appear in the assignments")
 						}
 					}
 				}
@@ -85,18 +87,21 @@ func main() {
 	// Health check
 	router.HandleFunc("/health", handler.HandleHealth).Methods("GET")
 
-//	log.Printf("🚀 Regional Check Agent starting on port %s", cfg.Port)
-//	if pbClient != nil {
-//		log.Printf("📡 PocketBase integration enabled at %s (public access)", pbClient.GetBaseURL())
-//	}
-//	if monitoringService != nil && regionalConfig != nil {
-//		regionName, agentID := regionalConfig.GetRegionalInfo()
-//		log.Printf("🎯 Regional monitoring active: Region=%s, Agent=%s", regionName, agentID)
-//		log.Printf("⚡ Service filtering: Only assigned services will be monitored")
-//	} else {
-//		log.Printf("❌ Regional monitoring disabled - configuration validation failed")
-//		log.Printf("💡 Set REGION_NAME and AGENT_ID environment variables to enable monitoring")
-//	}
+	log.Printf(" - Regional Check Agent starting on port %s", cfg.Port)
+	if pbClient != nil {
+		log.Printf(" - Backenbd integration enabled at %s ", pbClient.GetBaseURL())
+	}
+	if monitoringService != nil && regionalConfig != nil {
+		regionName, agentID := regionalConfig.GetRegionalInfo()
+		log.Printf("🎯 Regional monitoring active: Region=%s, Agent=%s", regionName, agentID)
+		//log.Printf("⚡ Service filtering: Supports comma-separated multi-region/multi-agent assignments")
+		//log.Printf("💡 Service Assignment Examples:")
+		//log.Printf("   - Single: region_name='%s' agent_id='%s'", regionName, agentID)
+		//log.Printf("   - Multi: region_name='us-east,%s,eu-west' agent_id='agent1,%s,agent3'", regionName, agentID)
+	} else {
+		//log.Printf("❌ Regional monitoring disabled - configuration validation failed")
+		//log.Printf("💡 Set REGION_NAME and AGENT_ID environment variables to enable monitoring")
+	}
 	
 	//log.Printf("🔗 Available endpoints:")
 	//log.Printf("  POST /operation - Full operation test (ping, dns, tcp, http)")
@@ -104,7 +109,7 @@ func main() {
 	//log.Printf("  POST /ping - Legacy ping endpoint")
 	//log.Printf("  GET  /ping/quick?host=<host> - Legacy quick ping test")
 	//log.Printf("  GET  /health - Health check")
-	log.Printf("📋 Supported operations: ping, dns, tcp, http")
+	//log.Printf("📋 Supported operations: ping, dns, tcp, http")
 
 	// Setup graceful shutdown
 	c := make(chan os.Signal, 1)

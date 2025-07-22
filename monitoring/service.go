@@ -61,10 +61,11 @@ func (ms *MonitoringService) Start() {
 	}
 
 	ms.isRunning = true
-	//log.Printf("🚀 Starting regional monitoring service")
+	//log.Printf("🚀 Starting regional monitoring service with multi-assignment support")
 	//log.Printf("   Assigned Region: %s", ms.regionName)
 	//log.Printf("   Assigned Agent ID: %s", ms.agentID)
-	//log.Printf("   Filter Mode: Only services with matching region_name AND agent_id will be monitored")
+	//log.Printf("   Filter Mode: Services with comma-separated region_name AND agent_id assignments supported")
+	//log.Printf("   Example: Service with region_name='us-east,eu-west' and agent_id='agent1,agent2' will be monitored")
 
 	// Start regional monitoring (connection status tracking)
 	ms.regionalMonitor.Start()
@@ -117,7 +118,7 @@ func (ms *MonitoringService) monitoringLoop() {
 }
 
 func (ms *MonitoringService) loadAndStartAssignedServices() {
-	// Critical: Only get services specifically assigned to this agent's region and ID
+	// Get services assigned to this agent (supports comma-separated assignments)
 	services, err := ms.pbClient.GetAssignedServices(ms.regionName, ms.agentID)
 	if err != nil {
 		log.Printf("❌ Failed to load assigned services for region='%s', agent='%s': %v", 
@@ -133,10 +134,9 @@ func (ms *MonitoringService) loadAndStartAssignedServices() {
 	newServicesCount := 0
 	
 	for _, service := range services {
-		// Double-check: Ensure service really matches our configuration
-		if service.RegionName != ms.regionName || service.AgentID != ms.agentID {
-			log.Printf("⚠️  Skipping service %s: region/agent mismatch (service: %s/%s, agent: %s/%s)", 
-				service.Name, service.RegionName, service.AgentID, ms.regionName, ms.agentID)
+		// Use the helper function to verify assignment (supports comma-separated values)
+		if !pocketbase.IsAssignedToRegionAndAgent(service, ms.regionName, ms.agentID) {
+			log.Printf("⚠️  Skipping service %s: region/agent assignment check failed", service.Name)
 			continue
 		}
 		
@@ -144,8 +144,14 @@ func (ms *MonitoringService) loadAndStartAssignedServices() {
 		
 		// Start monitoring if not already active
 		if _, exists := ms.activeServices[service.ID]; !exists {
-			log.Printf("🎯 Starting monitoring: %s (%s) - Region: %s, Agent: %s", 
-				service.Name, service.ServiceType, ms.regionName, ms.agentID)
+			// Enhanced logging for multi-assignment support
+			regionList := pocketbase.SplitCommaValues(service.RegionName)
+			agentList := pocketbase.SplitCommaValues(service.AgentID)
+			
+			log.Printf("✅ Starting monitoring: %s (%s)", service.Name, service.ServiceType)
+			log.Printf("   All Service regions: %v (monitoring as: %s)", regionList, ms.regionName)
+			log.Printf("   Service agents: %v (monitoring as: %s)", agentList, ms.agentID)
+			
 			ms.startMonitor(service)
 			newServicesCount++
 		}
@@ -163,20 +169,21 @@ func (ms *MonitoringService) loadAndStartAssignedServices() {
 	}
 
 	// Status summary
-// 	totalAssigned := len(services)
-// 	totalActive := len(ms.activeServices)
+//	totalAssigned := len(services)
+//	totalActive := len(ms.activeServices)
 	
-// 	if totalAssigned == 0 {
-// 		log.Printf("📋 No services assigned to region='%s', agent='%s'", ms.regionName, ms.agentID)
-		//log.Printf("💡 Assign services to this agent in PocketBase to start monitoring")
-// 	} else {
-// 		log.Printf("📊 Monitoring Status: %d services assigned, %d actively monitored", 
-// 			totalAssigned, totalActive)
-// 		if newServicesCount > 0 {
-// 		//	log.Printf("   ✅ Started monitoring %d new services", newServicesCount)
-// 		}
-// 		if stoppedServicesCount > 0 {
-// 			log.Printf("   🛑 Stopped monitoring %d unassigned services", stoppedServicesCount)
-// 		}
-// 	}
+//	if totalAssigned == 0 {
+	//	log.Printf("📋 No services assigned to region='%s', agent='%s'", ms.regionName, ms.agentID)
+	//	log.Printf("💡 Assign services to this agent in PocketBase using comma-separated values if needed")
+	//	log.Printf("   Example: region_name='us-east,%s' and agent_id='agent1,%s'", ms.regionName, ms.agentID)
+//	} else {
+//		log.Printf("📊 Monitoring Status: %d services assigned (with multi-assignment support), %d actively monitored", 
+//	  	totalAssigned, totalActive)
+	// if newServicesCount > 0 {
+	// 	log.Printf("   ✅ Started monitoring %d new services", newServicesCount)
+	// }
+	// if stoppedServicesCount > 0 {
+	// 	log.Printf("   🛑 Stopped monitoring %d unassigned services", stoppedServicesCount)
+	// }
+//	}
 }
